@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GeoTIFF Point Query</title>
+  <style>
+    body { font-family: monospace; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.2rem; }
+    label { display: block; margin-top: 12px; font-weight: bold; }
+    input[type=number], input[type=file] { width: 100%; box-sizing: border-box; padding: 6px; margin-top: 4px; }
+    button { margin-top: 16px; padding: 8px 20px; cursor: pointer; }
+    #results { margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #ddd; }
+    th { background: #f4f4f4; }
+    .out-of-bounds { color: #999; }
+    .error { color: red; }
+    #status { margin-top: 8px; color: #555; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>GeoTIFF Nearest-Neighbor Point Query</h1>
+
+  <label>Latitude
+    <input type="number" id="lat" step="any" value="39.5" />
+  </label>
+
+  <label>Longitude
+    <input type="number" id="lon" step="any" value="-123.8" />
+  </label>
+
+  <!-- Option A: URL-based (works when TIFs are served over HTTP) -->
+  <label>TIF URLs (one per line)
+    <textarea id="urls" rows="6" style="width:100%;box-sizing:border-box;padding:6px;margin-top:4px;font-family:monospace;"
+    >2017_09_NorCal_10m_KelpCanopy_Raster.tif
+2019_09_NorCal_10m_KelpCanopy_Raster.tif
+2021_09_NorCal_10m_KelpCanopy_Raster.tif
+2024_09_NorCal_10m_KelpCanopy_Raster.tif
+coastal_structures.tif
+JPLMUR_2023001_ANNUAL_L4ANALYSIS_SST_NorCal_1KM.tif</textarea>
+  </label>
+  <button onclick="runUrlQuery()">Query URLs</button>
+
+  <!-- Option B: File-upload (works for local files without a server) -->
+  <label style="margin-top:24px;">— or upload .tif files directly —
+    <input type="file" id="fileInput" multiple accept=".tif,.tiff" />
+  </label>
+  <button onclick="runFileQuery()">Query Uploaded Files</button>
+
+  <div id="status"></div>
+  <div id="results"></div>
+
+  <!-- geotiff.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/geotiff@2/dist-browser/geotiff.js"></script>
+  <script src="query_tifs.js"></script>
+
+  <script>
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function renderResults(results) {
+      if (!results.length) { document.getElementById('results').innerHTML = ''; return; }
+
+      const rows = results.map(r => {
+        if (r.error) {
+          return `<tr><td>${r.file}</td><td class="error">Error: ${r.error}</td></tr>`;
+        }
+        if (r.outOfBounds) {
+          return `<tr><td>${r.file}</td><td class="out-of-bounds">out of bounds</td></tr>`;
+        }
+        return `<tr><td>${r.file}</td><td>${r.value}</td></tr>`;
+      }).join('');
+
+      document.getElementById('results').innerHTML = `
+        <table>
+          <thead><tr><th>File</th><th>Value</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    async function runUrlQuery() {
+      const lat = parseFloat(document.getElementById('lat').value);
+      const lon = parseFloat(document.getElementById('lon').value);
+      const urls = document.getElementById('urls').value
+        .split('\n').map(s => s.trim()).filter(Boolean);
+
+      if (isNaN(lat) || isNaN(lon)) { alert('Enter valid lat/lon'); return; }
+      if (!urls.length) { alert('Enter at least one URL'); return; }
+
+      setStatus('Querying…');
+      document.getElementById('results').innerHTML = '';
+
+      try {
+        const results = await queryTifs(urls, lat, lon, {
+          onProgress: (i, total, path) => setStatus(`Reading ${i + 1}/${total}: ${path}`)
+        });
+        setStatus(`Done. ${results.length} file(s) queried.`);
+        renderResults(results);
+        console.table(results);
+      } catch (err) {
+        setStatus('Error: ' + err.message);
+      }
+    }
+
+    async function runFileQuery() {
+      const lat = parseFloat(document.getElementById('lat').value);
+      const lon = parseFloat(document.getElementById('lon').value);
+      const files = Array.from(document.getElementById('fileInput').files);
+
+      if (isNaN(lat) || isNaN(lon)) { alert('Enter valid lat/lon'); return; }
+      if (!files.length) { alert('Select at least one .tif file'); return; }
+
+      setStatus('Reading files…');
+      document.getElementById('results').innerHTML = '';
+
+      try {
+        const buffers = await Promise.all(files.map(async f => ({
+          name: f.name,
+          buffer: await f.arrayBuffer()
+        })));
+
+        const results = await queryTifsFromBuffers(buffers, lat, lon, {
+          onProgress: (i, total, name) => setStatus(`Processing ${i + 1}/${total}: ${name}`)
+        });
+
+        setStatus(`Done. ${results.length} file(s) queried.`);
+        renderResults(results);
+        console.table(results);
+      } catch (err) {
+        setStatus('Error: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
