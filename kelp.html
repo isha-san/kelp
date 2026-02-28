@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USGS Watershed Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .controls h3 {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .input-row {
+            display: flex;
+            gap: 6px;
+        }
+        .input-row input {
+            flex: 1;
+            min-width: 0;
+        }
+        .input-row select {
+            width: 55px;
+            padding: 8px 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4a90d9;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4a90d9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        button:hover {
+            background: #3a7bc8;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        button.success {
+            background: #28a745;
+        }
+        button.success:hover {
+            background: #218838;
+        }
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            background: #4a90d9;
+        }
+        .hint {
+            font-size: 11px;
+            color: #888;
+            margin-top: 8px;
+        }
+        .area-info {
+            margin-top: 10px;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+        }
+        .area-info.show {
+            display: block;
+        }
+        .divider {
+            height: 1px;
+            background: #eee;
+            margin: 12px 0;
+        }
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .sensor-list {
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .sensor-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .sensor-item:hover {
+            background: #e9e9e9;
+        }
+        .sensor-name {
+            flex: 1;
+            cursor: pointer;
+        }
+        .sensor-delete {
+            color: #dc3545;
+            cursor: pointer;
+            padding: 2px 6px;
+            font-weight: bold;
+        }
+        .sensor-delete:hover {
+            background: #dc3545;
+            color: white;
+            border-radius: 3px;
+        }
+        .add-sensor-mode {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            display: none;
+        }
+        .add-sensor-mode.show {
+            display: block;
+        }
+        .sensor-icon {
+            background: #e74c3c;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .depth-legend {
+            position: absolute;
+            bottom: 150px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 12px;
+            display: none;
+        }
+        .depth-legend.show {
+            display: block;
+        }
+        .depth-gradient {
+            width: 20px;
+            height: 80px;
+            background: linear-gradient(to bottom, #8B0000, #B22222, #DC143C, #FF6B6B, #FFB6C1);
+            margin: 5px 0;
+            border-radius: 2px;
+        }
+        .depth-labels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 80px;
+            margin-left: 8px;
+            font-size: 10px;
+            color: #666;
+        }
+        .depth-row {
+            display: flex;
+            align-items: flex-start;
+        }
+        .depth-popup {
+            min-width: 120px;
+        }
+        .depth-popup .depth-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #8B0000;
+        }
+        .depth-popup .depth-label {
+            font-size: 11px;
+            color: #666;
+        }
+        .depth-popup .coords {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="controls">
+        <h3>Hydro Flowlines Viewer</h3>
+
+        <p class="hint" style="margin-bottom: 10px;">Use draw tools on the left for AOI, or add sensors below.</p>
+
+        <div class="divider"></div>
+
+        <div class="section-title">Sensors</div>
+
+        <div id="addSensorMode" class="add-sensor-mode">
+            Click on the map to place sensor
+        </div>
+
+        <div class="form-group">
+            <label for="sensorName">Sensor Name</label>
+            <input type="text" id="sensorName" placeholder="e.g. Gauge-001">
+        </div>
+
+        <button class="success" onclick="toggleAddSensorMode()">
+            <span id="addSensorBtn">+ Add Sensor</span>
+        </button>
+
+        <div id="sensorList" class="sensor-list"></div>
+
+        <div class="divider"></div>
+
+        <div class="section-title">Go to Location</div>
+        <div class="form-group">
+            <label for="lat">Latitude</label>
+            <div class="input-row">
+                <input type="number" id="lat" step="any" placeholder="38.5249" min="0" max="90">
+                <select id="latDir">
+                    <option value="N">N</option>
+                    <option value="S">S</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="lng">Longitude</label>
+            <div class="input-row">
+                <input type="number" id="lng" step="any" placeholder="121.9708" min="0" max="180">
+                <select id="lngDir">
+                    <option value="W">W</option>
+                    <option value="E">E</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="goToLocation()">Go</button>
+
+        <div class="divider"></div>
+
+        <button class="secondary" onclick="clearDrawings()">Clear AOI</button>
+        <button class="secondary" onclick="clearSensors()" style="margin-top: 5px;">Clear Sensors</button>
+
+        <div id="areaInfo" class="area-info">
+            <strong>Area of Interest</strong><br>
+            <span id="areaSize"></span>
+        </div>
+    </div>
+
+    <div id="depthLegend" class="depth-legend">
+        <strong>Ocean Depth</strong>
+        <div class="depth-row">
+            <div class="depth-gradient"></div>
+            <div class="depth-labels">
+                <span>≥300m</span>
+                <span>200m</span>
+                <span>100m</span>
+                <span>50m</span>
+                <span>≤20m</span>
+            </div>
+        </div>
+        <div style="margin-top: 8px; font-size: 10px; color: #888;">Click for exact depth</div>
+    </div>
+
+    <div class="legend">
+        <strong>USGS Hydrography</strong>
+        <div class="legend-item">
+            <div class="legend-color"></div>
+            <span>Flowlines</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3388ff; height: 12px; width: 20px; border: 2px solid #3388ff; opacity: 0.5;"></div>
+            <span>Area of Interest</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 12px; height: 12px; background: #e74c3c; border: 2px solid #fff; border-radius: 50%; margin-right: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+            <span>Sensor</span>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script>
+        // Custom depth color scale (20m to 300m) - light red to dark red
+        const MIN_DEPTH = 20;
+        const MAX_DEPTH = 300;
+
+        function getDepthColor(depth) {
+            if (depth < MIN_DEPTH) depth = MIN_DEPTH;
+            if (depth > MAX_DEPTH) depth = MAX_DEPTH;
+
+            const ratio = (depth - MIN_DEPTH) / (MAX_DEPTH - MIN_DEPTH);
+
+            // Color stops: light pink -> red -> dark red
+            if (ratio < 0.25) {
+                // Light pink to salmon
+                const t = ratio / 0.25;
+                return [255, Math.round(182 - t * 75), Math.round(193 - t * 86)];
+            } else if (ratio < 0.5) {
+                // Salmon to crimson
+                const t = (ratio - 0.25) / 0.25;
+                return [Math.round(255 - t * 35), Math.round(107 - t * 87), Math.round(107 - t * 87)];
+            } else if (ratio < 0.75) {
+                // Crimson to firebrick
+                const t = (ratio - 0.5) / 0.25;
+                return [Math.round(220 - t * 42), Math.round(20 - t * 6), Math.round(20 + t * 14)];
+            } else {
+                // Firebrick to dark red
+                const t = (ratio - 0.75) / 0.25;
+                return [Math.round(178 - t * 39), Math.round(14 - t * 14), Math.round(34 - t * 34)];
+            }
+        }
+
+        // Custom Canvas Tile Layer for depth visualization
+        L.TileLayer.DepthCanvas = L.TileLayer.extend({
+            createTile: function(coords, done) {
+                const tile = document.createElement('canvas');
+                const size = this.getTileSize();
+                tile.width = size.x;
+                tile.height = size.y;
+
+                const ctx = tile.getContext('2d');
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+
+                // Use AWS Terrain tiles (Terrarium format)
+                const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`;
+
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, size.x, size.y);
+                    const data = imageData.data;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+
+                        // Decode Terrarium format: elevation = (R * 256 + G + B / 256) - 32768
+                        const elevation = (r * 256 + g + b / 256) - 32768;
+
+                        if (elevation < 0) {
+                            // Ocean - depth is positive value of negative elevation
+                            const depth = Math.abs(elevation);
+                            const color = getDepthColor(depth);
+                            data[i] = color[0];
+                            data[i + 1] = color[1];
+                            data[i + 2] = color[2];
+                            data[i + 3] = 200; // Semi-transparent
+                        } else {
+                            // Land - make transparent
+                            data[i + 3] = 0;
+                        }
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+                    done(null, tile);
+                };
+
+                img.onerror = function() {
+                    done(null, tile);
+                };
+
+                img.src = url;
+                return tile;
+            }
+        });
+
+        L.tileLayer.depthCanvas = function(options) {
+            return new L.TileLayer.DepthCanvas(null, options);
+        };
+
+        // Initialize map centered on CONUS
+        const map = L.map('map').setView([39.8283, -98.5795], 5);
+
+        // Define Base Maps
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        const oceanBasemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri Ocean Basemap',
+            maxZoom: 13
+        });
+
+        // Custom depth layer using canvas rendering
+        const oceanDepthLayer = L.tileLayer.depthCanvas({
+            maxZoom: 14,
+            attribution: 'Elevation: AWS Terrain Tiles'
+        });
+
+        // Track depth layer visibility for legend
+        oceanDepthLayer.on('add', function() {
+            document.getElementById('depthLegend').classList.add('show');
+        });
+        oceanDepthLayer.on('remove', function() {
+            document.getElementById('depthLegend').classList.remove('show');
+        });
+
+        // USGS Flowlines
+        const nhdLayer = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 16,
+            attribution: 'USGS National Map'
+        });
+
+        // Set default layers
+        osmLayer.addTo(map);
+        nhdLayer.addTo(map);
+
+        // Layer Controls
+        const baseMaps = {
+            "OpenStreetMap": osmLayer,
+            "Ocean Basemap": oceanBasemap
+        };
+
+        const overlayMaps = {
+            "USGS Flowlines": nhdLayer,
+            "Ocean Depth (Red)": oceanDepthLayer
+        };
+
+        L.control.layers(baseMaps, overlayMaps, { position: 'bottomleft' }).addTo(map);
+
+        // Feature groups
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        const sensorLayer = new L.FeatureGroup();
+        map.addLayer(sensorLayer);
+
+        let sensors = [];
+        let addSensorMode = false;
+
+        const sensorIcon = L.divIcon({
+            className: 'sensor-icon',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
+            popupAnchor: [0, -8]
+        });
+
+        // Draw control
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polygon: {
+                    allowIntersection: false,
+                    showArea: true,
+                    shapeOptions: { color: '#3388ff' }
+                },
+                rectangle: { shapeOptions: { color: '#3388ff' } },
+                circle: { shapeOptions: { color: '#3388ff' } },
+                polyline: false,
+                marker: false,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            }
+        });
+        map.addControl(drawControl);
+
+        map.on(L.Draw.Event.CREATED, function(event) {
+            drawnItems.addLayer(event.layer);
+            updateAreaInfo();
+        });
+
+        map.on(L.Draw.Event.DELETED, function() { updateAreaInfo(); });
+        map.on(L.Draw.Event.EDITED, function() { updateAreaInfo(); });
+
+        function updateAreaInfo() {
+            const layers = drawnItems.getLayers();
+            const areaInfo = document.getElementById('areaInfo');
+            const areaSize = document.getElementById('areaSize');
+
+            if (layers.length === 0) {
+                areaInfo.classList.remove('show');
+                return;
+            }
+
+            let totalArea = 0;
+            layers.forEach(function(layer) {
+                if (layer instanceof L.Circle) {
+                    const radius = layer.getRadius();
+                    totalArea += Math.PI * radius * radius;
+                } else if (layer.getLatLngs) {
+                    totalArea += L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+                }
+            });
+
+            let areaText = totalArea > 1000000
+                ? (totalArea / 1000000).toFixed(2) + ' km²'
+                : totalArea.toFixed(0) + ' m²';
+
+            areaSize.textContent = layers.length + ' shape(s), ' + areaText;
+            areaInfo.classList.add('show');
+        }
+
+        function clearDrawings() {
+            drawnItems.clearLayers();
+            updateAreaInfo();
+        }
+
+        function toggleAddSensorMode() {
+            addSensorMode = !addSensorMode;
+            const btn = document.getElementById('addSensorBtn');
+            const modeDiv = document.getElementById('addSensorMode');
+
+            if (addSensorMode) {
+                btn.textContent = 'Cancel';
+                modeDiv.classList.add('show');
+                map.getContainer().style.cursor = 'crosshair';
+            } else {
+                btn.textContent = '+ Add Sensor';
+                modeDiv.classList.remove('show');
+                map.getContainer().style.cursor = '';
+            }
+        }
+
+        function addSensor(latlng, name) {
+            const id = Date.now();
+            const sensor = {
+                id: id,
+                name: name || 'Sensor-' + (sensors.length + 1),
+                lat: latlng.lat,
+                lng: latlng.lng
+            };
+
+            const marker = L.marker(latlng, { icon: sensorIcon })
+                .bindPopup('<strong>' + sensor.name + '</strong><br>Lat: ' + latlng.lat.toFixed(6) + '<br>Lng: ' + latlng.lng.toFixed(6));
+
+            marker.sensorId = id;
+            sensorLayer.addLayer(marker);
+            sensors.push(sensor);
+
+            updateSensorList();
+
+            if (addSensorMode) {
+                toggleAddSensorMode();
+            }
+            document.getElementById('sensorName').value = '';
+        }
+
+        function deleteSensor(id) {
+            sensors = sensors.filter(s => s.id !== id);
+            sensorLayer.eachLayer(function(layer) {
+                if (layer.sensorId === id) {
+                    sensorLayer.removeLayer(layer);
+                }
+            });
+            updateSensorList();
+        }
+
+        function clearSensors() {
+            sensors = [];
+            sensorLayer.clearLayers();
+            updateSensorList();
+        }
+
+        function zoomToSensor(id) {
+            const sensor = sensors.find(s => s.id === id);
+            if (sensor) {
+                map.setView([sensor.lat, sensor.lng], 14);
+                sensorLayer.eachLayer(function(layer) {
+                    if (layer.sensorId === id) {
+                        layer.openPopup();
+                    }
+                });
+            }
+        }
+
+        function updateSensorList() {
+            const list = document.getElementById('sensorList');
+            if (sensors.length === 0) {
+                list.innerHTML = '<p class="hint">No sensors added yet</p>';
+                return;
+            }
+
+            list.innerHTML = sensors.map(s =>
+                '<div class="sensor-item">' +
+                    '<span class="sensor-name" onclick="zoomToSensor(' + s.id + ')">' + s.name + '</span>' +
+                    '<span class="sensor-delete" onclick="deleteSensor(' + s.id + ')">×</span>' +
+                '</div>'
+            ).join('');
+        }
+
+        // Fetch depth from NOAA API
+        function fetchOceanDepth(lat, lng) {
+            const apiUrl = `https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/identify?geometry=${lng},${lat}&geometryType=esriGeometryPoint&returnGeometry=false&returnCatalogItems=false&f=json`;
+
+            return fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.value && data.value !== 'NoData') {
+                        return parseFloat(data.value);
+                    }
+                    return null;
+                })
+                .catch(() => null);
+        }
+
+        // Map click handler
+        map.on('click', function(e) {
+            if (addSensorMode) {
+                const name = document.getElementById('sensorName').value.trim();
+                addSensor(e.latlng, name);
+            } else {
+                document.getElementById('lat').value = Math.abs(e.latlng.lat).toFixed(6);
+                document.getElementById('lng').value = Math.abs(e.latlng.lng).toFixed(6);
+                document.getElementById('latDir').value = e.latlng.lat >= 0 ? 'N' : 'S';
+                document.getElementById('lngDir').value = e.latlng.lng >= 0 ? 'E' : 'W';
+
+                // Query depth if depth layer is active
+                if (map.hasLayer(oceanDepthLayer)) {
+                    const popup = L.popup()
+                        .setLatLng(e.latlng)
+                        .setContent('<div class="depth-popup"><span class="depth-label">Querying depth...</span></div>')
+                        .openOn(map);
+
+                    fetchOceanDepth(e.latlng.lat, e.latlng.lng)
+                        .then(elevation => {
+                            let content;
+                            if (elevation === null) {
+                                content = '<div class="depth-popup"><span class="depth-label">No data</span></div>';
+                            } else if (elevation >= 0) {
+                                content = '<div class="depth-popup"><span class="depth-label">Land elevation:</span><br><span class="depth-value" style="color: #228B22;">' + elevation.toFixed(1) + ' m</span></div>';
+                            } else {
+                                const depth = Math.abs(elevation);
+                                const color = getDepthColor(depth);
+                                const colorStr = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+                                content = '<div class="depth-popup">' +
+                                    '<span class="depth-label">Ocean Depth:</span><br>' +
+                                    '<span class="depth-value" style="color: ' + colorStr + ';">' + depth.toFixed(1) + ' m</span>' +
+                                    '<div class="coords">' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) + '</div>' +
+                                    '</div>';
+                            }
+                            popup.setContent(content);
+                        });
+                }
+            }
+        });
+
+        function goToLocation() {
+            let lat = parseFloat(document.getElementById('lat').value);
+            let lng = parseFloat(document.getElementById('lng').value);
+            const latDir = document.getElementById('latDir').value;
+            const lngDir = document.getElementById('lngDir').value;
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Please enter valid latitude and longitude');
+                return;
+            }
+
+            if (latDir === 'S') lat = -lat;
+            if (lngDir === 'W') lng = -lng;
+
+            map.setView([lat, lng], 12);
+        }
+
+        updateSensorList();
+    </script>
+</body>
+</html>
