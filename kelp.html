@@ -7,723 +7,475 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        #map {
-            height: 100vh;
-            width: 100%;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #map { height: 100vh; width: 100%; }
         .controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
+            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            background: white; padding: 15px; border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 300px;
-            max-height: 90vh;
-            overflow-y: auto;
+            max-width: 300px; max-height: 90vh; overflow-y: auto;
         }
-        .controls h3 {
-            margin-bottom: 12px;
-            font-size: 14px;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 10px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 4px;
-        }
-        .input-row {
-            display: flex;
-            gap: 6px;
-        }
-        .input-row input {
-            flex: 1;
-            min-width: 0;
-        }
-        .input-row select {
-            width: 55px;
-            padding: 8px 4px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            background: white;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #4a90d9;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #4a90d9;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-        button:hover {
-            background: #3a7bc8;
-        }
-        button.secondary {
-            background: #6c757d;
-        }
-        button.secondary:hover {
-            background: #5a6268;
-        }
-        button.success {
-            background: #28a745;
-        }
-        button.success:hover {
-            background: #218838;
-        }
-        .legend {
-            position: absolute;
-            bottom: 30px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            font-size: 12px;
-        }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 4px 0;
-        }
-        .legend-color {
-            width: 20px;
-            height: 3px;
-            margin-right: 8px;
-            background: #4a90d9;
-        }
-        .hint {
-            font-size: 11px;
-            color: #888;
-            margin-top: 8px;
-        }
-        .area-info {
-            margin-top: 10px;
-            padding: 8px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            font-size: 12px;
-            display: none;
-        }
-        .area-info.show {
-            display: block;
-        }
-        .divider {
-            height: 1px;
-            background: #eee;
-            margin: 12px 0;
-        }
-        .section-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        .sensor-list {
-            margin-top: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-        .sensor-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
-        .sensor-item:hover {
-            background: #e9e9e9;
-        }
-        .sensor-name {
-            flex: 1;
-            cursor: pointer;
-        }
-        .sensor-delete {
-            color: #dc3545;
-            cursor: pointer;
-            padding: 2px 6px;
-            font-weight: bold;
-        }
-        .sensor-delete:hover {
-            background: #dc3545;
-            color: white;
-            border-radius: 3px;
-        }
-        .add-sensor-mode {
-            background: #d4edda;
-            border: 1px solid #28a745;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            font-size: 12px;
-            display: none;
-        }
-        .add-sensor-mode.show {
-            display: block;
-        }
-        .sensor-icon {
-            background: #e74c3c;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
-        .depth-legend {
-            position: absolute;
-            bottom: 150px;
-            right: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            font-size: 12px;
-            display: none;
-        }
-        .depth-legend.show {
-            display: block;
-        }
-        .depth-gradient {
-            width: 20px;
-            height: 80px;
-            background: linear-gradient(to bottom, #8B0000, #B22222, #DC143C, #FF6B6B, #FFB6C1);
-            margin: 5px 0;
-            border-radius: 2px;
-        }
-        .depth-labels {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 80px;
-            margin-left: 8px;
-            font-size: 10px;
-            color: #666;
-        }
-        .depth-row {
-            display: flex;
-            align-items: flex-start;
-        }
-        .depth-popup {
-            min-width: 120px;
-        }
-        .depth-popup .depth-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #8B0000;
-        }
-        .depth-popup .depth-label {
-            font-size: 11px;
-            color: #666;
-        }
-        .depth-popup .coords {
-            font-size: 10px;
-            color: #999;
-            margin-top: 4px;
-        }
+        .controls h3 { margin-bottom: 12px; font-size: 14px; color: #333; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+        .input-row { display: flex; gap: 6px; }
+        .input-row input { flex: 1; min-width: 0; }
+        .input-row select { width: 55px; padding: 8px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-group input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #4a90d9; }
+        button { width: 100%; padding: 10px; background: #4a90d9; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; margin-top: 5px; }
+        button:hover { background: #3a7bc8; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #5a6268; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        .legend { position: absolute; bottom: 30px; right: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-size: 12px; }
+        .legend-item { display: flex; align-items: center; margin: 4px 0; }
+        .legend-color { width: 20px; height: 3px; margin-right: 8px; background: #4a90d9; }
+        .hint { font-size: 11px; color: #888; margin-top: 8px; }
+        .area-info { margin-top: 10px; padding: 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; display: none; }
+        .area-info.show { display: block; }
+        .divider { height: 1px; background: #eee; margin: 12px 0; }
+        .section-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+        .sensor-list { margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .sensor-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #f5f5f5; border-radius: 4px; margin-bottom: 4px; font-size: 12px; }
+        .sensor-item:hover { background: #e9e9e9; }
+        .sensor-name { flex: 1; cursor: pointer; }
+        .sensor-delete { color: #dc3545; cursor: pointer; padding: 2px 6px; font-weight: bold; }
+        .sensor-delete:hover { background: #dc3545; color: white; border-radius: 3px; }
+        .add-sensor-mode { background: #d4edda; border: 1px solid #28a745; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 12px; display: none; }
+        .add-sensor-mode.show { display: block; }
+        .sensor-icon { background: #e74c3c; border: 2px solid #fff; border-radius: 50%; width: 12px; height: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+        .data-legend { position: absolute; bottom: 150px; right: 10px; z-index: 1000; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-size: 12px; display: none; }
+        .data-legend.show { display: block; }
+        .gradient-bar { width: 120px; height: 15px; margin: 5px 0; border-radius: 2px; }
+        .gradient-labels { display: flex; justify-content: space-between; font-size: 10px; color: #666; }
+        .depth-gradient { background: linear-gradient(to right, #FFB6C1, #DC143C, #8B0000); }
+
+        .depth-popup { min-width: 140px; }
+        .depth-popup .depth-value { font-size: 18px; font-weight: bold; }
+        .depth-popup .depth-label { font-size: 11px; color: #666; }
+        .depth-popup .coords { font-size: 10px; color: #999; margin-top: 4px; }
+
+        /* Query layer checkboxes */
+        .query-layers { margin-top: 4px; }
+        .query-layer-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12px; }
+        .query-layer-row input[type=checkbox] { margin: 0; }
+        .query-layer-row select { padding: 3px 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+
+        /* Combined popup */
+        .query-popup { min-width: 160px; font-size: 13px; }
+        .query-popup .qp-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+        .query-popup .qp-row:last-child { border-bottom: none; }
+        .query-popup .qp-label { color: #666; font-size: 11px; margin-right: 8px; }
+        .query-popup .qp-value { font-weight: 600; }
+        .qp-present { color: #228B22; }
+        .qp-absent { color: #999; }
+        .qp-loading { color: #aaa; font-style: italic; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
     <div class="controls">
-        <h3>Hydro Flowlines Viewer</h3>
-
-        <p class="hint" style="margin-bottom: 10px;">Use draw tools on the left for AOI, or add sensors below.</p>
+        <h3>NorCal Ocean Viewer</h3>
+        <p class="hint" style="margin-bottom: 10px;">Toggle layers in bottom-left control</p>
 
         <div class="divider"></div>
-
-        <div class="section-title">Sensors</div>
-
-        <div id="addSensorMode" class="add-sensor-mode">
-            Click on the map to place sensor
+        <div class="section-title">Click Queries</div>
+        <div class="query-layers">
+            <div class="query-layer-row">
+                <input type="checkbox" id="qKelp">
+                <label for="qKelp">Kelp Canopy</label>
+                <select id="kelpYear">
+                    <option value="2017">2017</option>
+                    <option value="2019">2019</option>
+                    <option value="2021">2021</option>
+                    <option value="2024" selected>2024</option>
+                </select>
+            </div>
+            <div class="query-layer-row">
+                <input type="checkbox" id="qSST">
+                <label for="qSST">SST 2023</label>
+            </div>
+            <div class="query-layer-row">
+                <input type="checkbox" id="qCoastal">
+                <label for="qCoastal">Coastal Structures</label>
+            </div>
         </div>
 
+        <div class="divider"></div>
+        <div class="section-title">Sensors</div>
+        <div id="addSensorMode" class="add-sensor-mode">Click on the map to place sensor</div>
         <div class="form-group">
             <label for="sensorName">Sensor Name</label>
             <input type="text" id="sensorName" placeholder="e.g. Gauge-001">
         </div>
-
-        <button class="success" onclick="toggleAddSensorMode()">
-            <span id="addSensorBtn">+ Add Sensor</span>
-        </button>
-
+        <button class="success" onclick="toggleAddSensorMode()"><span id="addSensorBtn">+ Add Sensor</span></button>
         <div id="sensorList" class="sensor-list"></div>
 
         <div class="divider"></div>
-
         <div class="section-title">Go to Location</div>
         <div class="form-group">
             <label for="lat">Latitude</label>
             <div class="input-row">
                 <input type="number" id="lat" step="any" placeholder="38.5249" min="0" max="90">
-                <select id="latDir">
-                    <option value="N">N</option>
-                    <option value="S">S</option>
-                </select>
+                <select id="latDir"><option value="N">N</option><option value="S">S</option></select>
             </div>
         </div>
         <div class="form-group">
             <label for="lng">Longitude</label>
             <div class="input-row">
                 <input type="number" id="lng" step="any" placeholder="121.9708" min="0" max="180">
-                <select id="lngDir">
-                    <option value="W">W</option>
-                    <option value="E">E</option>
-                </select>
+                <select id="lngDir"><option value="W">W</option><option value="E">E</option></select>
             </div>
         </div>
         <button onclick="goToLocation()">Go</button>
 
         <div class="divider"></div>
-
         <button class="secondary" onclick="clearDrawings()">Clear AOI</button>
         <button class="secondary" onclick="clearSensors()" style="margin-top: 5px;">Clear Sensors</button>
-
-        <div id="areaInfo" class="area-info">
-            <strong>Area of Interest</strong><br>
-            <span id="areaSize"></span>
-        </div>
+        <div id="areaInfo" class="area-info"><strong>Area of Interest</strong><br><span id="areaSize"></span></div>
     </div>
 
-    <div id="depthLegend" class="depth-legend">
+    <div id="depthLegend" class="data-legend">
         <strong>Ocean Depth</strong>
-        <div class="depth-row">
-            <div class="depth-gradient"></div>
-            <div class="depth-labels">
-                <span>≥300m</span>
-                <span>200m</span>
-                <span>100m</span>
-                <span>50m</span>
-                <span>≤20m</span>
-            </div>
-        </div>
-        <div style="margin-top: 8px; font-size: 10px; color: #888;">Click for exact depth</div>
+        <div class="gradient-bar depth-gradient"></div>
+        <div class="gradient-labels"><span>20m</span><span>150m</span><span>300m+</span></div>
     </div>
 
     <div class="legend">
-        <strong>USGS Hydrography</strong>
-        <div class="legend-item">
-            <div class="legend-color"></div>
-            <span>Flowlines</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #3388ff; height: 12px; width: 20px; border: 2px solid #3388ff; opacity: 0.5;"></div>
-            <span>Area of Interest</span>
-        </div>
-        <div class="legend-item">
-            <div style="width: 12px; height: 12px; background: #e74c3c; border: 2px solid #fff; border-radius: 50%; margin-right: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-            <span>Sensor</span>
-        </div>
+        <strong>Base Layers</strong>
+        <div class="legend-item"><div class="legend-color"></div><span>USGS Flowlines</span></div>
+        <div class="legend-item"><div class="legend-color" style="background: #3388ff; height: 12px; width: 20px; border: 2px solid #3388ff; opacity: 0.5;"></div><span>Area of Interest</span></div>
+        <div class="legend-item"><div style="width: 12px; height: 12px; background: #e74c3c; border: 2px solid #fff; border-radius: 50%; margin-right: 8px;"></div><span>Sensor</span></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/geotiff@2/dist-browser/geotiff.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
-        // Custom depth color scale (20m to 300m) - light red to dark red
-        const MIN_DEPTH = 20;
-        const MAX_DEPTH = 300;
-
+        // ── Depth color ──────────────────────────────────────────────────────────
+        const MIN_DEPTH = 20, MAX_DEPTH = 300;
         function getDepthColor(depth) {
             if (depth < MIN_DEPTH) depth = MIN_DEPTH;
             if (depth > MAX_DEPTH) depth = MAX_DEPTH;
-
             const ratio = (depth - MIN_DEPTH) / (MAX_DEPTH - MIN_DEPTH);
-
-            // Color stops: light pink -> red -> dark red
-            if (ratio < 0.25) {
-                // Light pink to salmon
-                const t = ratio / 0.25;
-                return [255, Math.round(182 - t * 75), Math.round(193 - t * 86)];
-            } else if (ratio < 0.5) {
-                // Salmon to crimson
-                const t = (ratio - 0.25) / 0.25;
-                return [Math.round(255 - t * 35), Math.round(107 - t * 87), Math.round(107 - t * 87)];
-            } else if (ratio < 0.75) {
-                // Crimson to firebrick
-                const t = (ratio - 0.5) / 0.25;
-                return [Math.round(220 - t * 42), Math.round(20 - t * 6), Math.round(20 + t * 14)];
-            } else {
-                // Firebrick to dark red
-                const t = (ratio - 0.75) / 0.25;
-                return [Math.round(178 - t * 39), Math.round(14 - t * 14), Math.round(34 - t * 34)];
-            }
+            if (ratio < 0.25) return [255, Math.round(182 - ratio/0.25 * 75), Math.round(193 - ratio/0.25 * 86)];
+            if (ratio < 0.5) { const t = (ratio - 0.25) / 0.25; return [Math.round(255 - t * 35), Math.round(107 - t * 87), Math.round(107 - t * 87)]; }
+            if (ratio < 0.75) { const t = (ratio - 0.5) / 0.25; return [Math.round(220 - t * 42), Math.round(20 - t * 6), Math.round(20 + t * 14)]; }
+            const t = (ratio - 0.75) / 0.25; return [Math.round(178 - t * 39), Math.round(14 - t * 14), Math.round(34 - t * 34)];
         }
 
-        // Custom Canvas Tile Layer for depth visualization
+        // ── Custom Canvas Tile Layer for depth ───────────────────────────────────
         L.TileLayer.DepthCanvas = L.TileLayer.extend({
             createTile: function(coords, done) {
                 const tile = document.createElement('canvas');
                 const size = this.getTileSize();
-                tile.width = size.x;
-                tile.height = size.y;
-
+                tile.width = size.x; tile.height = size.y;
                 const ctx = tile.getContext('2d');
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
-
-                // Use AWS Terrain tiles (Terrarium format)
-                const url = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`;
-
                 img.onload = function() {
                     ctx.drawImage(img, 0, 0);
                     const imageData = ctx.getImageData(0, 0, size.x, size.y);
                     const data = imageData.data;
-
                     for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-
-                        // Decode Terrarium format: elevation = (R * 256 + G + B / 256) - 32768
-                        const elevation = (r * 256 + g + b / 256) - 32768;
-
+                        const elevation = (data[i] * 256 + data[i+1] + data[i+2] / 256) - 32768;
                         if (elevation < 0) {
-                            // Ocean - depth is positive value of negative elevation
-                            const depth = Math.abs(elevation);
-                            const color = getDepthColor(depth);
-                            data[i] = color[0];
-                            data[i + 1] = color[1];
-                            data[i + 2] = color[2];
-                            data[i + 3] = 200; // Semi-transparent
-                        } else {
-                            // Land - make transparent
-                            data[i + 3] = 0;
-                        }
+                            const color = getDepthColor(Math.abs(elevation));
+                            data[i] = color[0]; data[i+1] = color[1]; data[i+2] = color[2]; data[i+3] = 180;
+                        } else { data[i+3] = 0; }
                     }
-
                     ctx.putImageData(imageData, 0, 0);
                     done(null, tile);
                 };
-
-                img.onerror = function() {
-                    done(null, tile);
-                };
-
-                img.src = url;
+                img.onerror = function() { done(null, tile); };
+                img.src = `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${coords.z}/${coords.x}/${coords.y}.png`;
                 return tile;
             }
         });
+        L.tileLayer.depthCanvas = function(opts) { return new L.TileLayer.DepthCanvas(null, opts); };
 
-        L.tileLayer.depthCanvas = function(options) {
-            return new L.TileLayer.DepthCanvas(null, options);
-        };
+        // ── Map init ─────────────────────────────────────────────────────────────
+        const map = L.map('map').setView([39.5, -124.0], 7);
 
-        // Initialize map centered on CONUS
-        const map = L.map('map').setView([39.8283, -98.5795], 5);
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
+        const oceanBasemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Ocean', maxZoom: 13 });
+        const nhdLayer = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: 'USGS' });
+        const oceanDepthLayer = L.tileLayer.depthCanvas({ maxZoom: 14, attribution: 'AWS Terrain' });
 
-        // Define Base Maps
-        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        });
+        oceanDepthLayer.on('add', () => document.getElementById('depthLegend').classList.add('show'));
+        oceanDepthLayer.on('remove', () => document.getElementById('depthLegend').classList.remove('show'));
 
-        const oceanBasemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Esri Ocean Basemap',
-            maxZoom: 13
-        });
-
-        // Custom depth layer using canvas rendering
-        const oceanDepthLayer = L.tileLayer.depthCanvas({
-            maxZoom: 14,
-            attribution: 'Elevation: AWS Terrain Tiles'
-        });
-
-        // Track depth layer visibility for legend
-        oceanDepthLayer.on('add', function() {
-            document.getElementById('depthLegend').classList.add('show');
-        });
-        oceanDepthLayer.on('remove', function() {
-            document.getElementById('depthLegend').classList.remove('show');
-        });
-
-        // USGS Flowlines
-        const nhdLayer = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 16,
-            attribution: 'USGS National Map'
-        });
-
-        // Set default layers
         osmLayer.addTo(map);
         nhdLayer.addTo(map);
 
-        // Layer Controls
-        const baseMaps = {
-            "OpenStreetMap": osmLayer,
-            "Ocean Basemap": oceanBasemap
-        };
-
-        const overlayMaps = {
-            "USGS Flowlines": nhdLayer,
-            "Ocean Depth (Red)": oceanDepthLayer
-        };
-
+        const baseMaps = { "OpenStreetMap": osmLayer, "Ocean Basemap": oceanBasemap };
+        const overlayMaps = { "USGS Flowlines": nhdLayer, "Ocean Depth (Red)": oceanDepthLayer };
         L.control.layers(baseMaps, overlayMaps, { position: 'bottomleft' }).addTo(map);
 
-        // Feature groups
+        // ── Drawing ──────────────────────────────────────────────────────────────
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-
         const sensorLayer = new L.FeatureGroup();
         map.addLayer(sensorLayer);
 
-        let sensors = [];
-        let addSensorMode = false;
+        let sensors = [], addSensorMode = false;
+        const sensorIcon = L.divIcon({ className: 'sensor-icon', iconSize: [12, 12], iconAnchor: [6, 6], popupAnchor: [0, -8] });
 
-        const sensorIcon = L.divIcon({
-            className: 'sensor-icon',
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-            popupAnchor: [0, -8]
-        });
-
-        // Draw control
         const drawControl = new L.Control.Draw({
             position: 'topleft',
-            draw: {
-                polygon: {
-                    allowIntersection: false,
-                    showArea: true,
-                    shapeOptions: { color: '#3388ff' }
-                },
-                rectangle: { shapeOptions: { color: '#3388ff' } },
-                circle: { shapeOptions: { color: '#3388ff' } },
-                polyline: false,
-                marker: false,
-                circlemarker: false
-            },
-            edit: {
-                featureGroup: drawnItems,
-                remove: true
-            }
+            draw: { polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: '#3388ff' } },
+                    rectangle: { shapeOptions: { color: '#3388ff' } }, circle: { shapeOptions: { color: '#3388ff' } },
+                    polyline: false, marker: false, circlemarker: false },
+            edit: { featureGroup: drawnItems, remove: true }
         });
         map.addControl(drawControl);
 
-        map.on(L.Draw.Event.CREATED, function(event) {
-            drawnItems.addLayer(event.layer);
-            updateAreaInfo();
-        });
-
-        map.on(L.Draw.Event.DELETED, function() { updateAreaInfo(); });
-        map.on(L.Draw.Event.EDITED, function() { updateAreaInfo(); });
+        map.on(L.Draw.Event.CREATED, e => { drawnItems.addLayer(e.layer); updateAreaInfo(); });
+        map.on(L.Draw.Event.DELETED, updateAreaInfo);
+        map.on(L.Draw.Event.EDITED, updateAreaInfo);
 
         function updateAreaInfo() {
             const layers = drawnItems.getLayers();
             const areaInfo = document.getElementById('areaInfo');
-            const areaSize = document.getElementById('areaSize');
-
-            if (layers.length === 0) {
-                areaInfo.classList.remove('show');
-                return;
-            }
-
+            if (layers.length === 0) { areaInfo.classList.remove('show'); return; }
             let totalArea = 0;
-            layers.forEach(function(layer) {
-                if (layer instanceof L.Circle) {
-                    const radius = layer.getRadius();
-                    totalArea += Math.PI * radius * radius;
-                } else if (layer.getLatLngs) {
-                    totalArea += L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-                }
+            layers.forEach(layer => {
+                if (layer instanceof L.Circle) totalArea += Math.PI * layer.getRadius() ** 2;
+                else if (layer.getLatLngs) totalArea += L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
             });
-
-            let areaText = totalArea > 1000000
-                ? (totalArea / 1000000).toFixed(2) + ' km²'
-                : totalArea.toFixed(0) + ' m²';
-
-            areaSize.textContent = layers.length + ' shape(s), ' + areaText;
+            document.getElementById('areaSize').textContent = layers.length + ' shape(s), ' +
+                (totalArea > 1e6 ? (totalArea/1e6).toFixed(2) + ' km²' : totalArea.toFixed(0) + ' m²');
             areaInfo.classList.add('show');
         }
 
-        function clearDrawings() {
-            drawnItems.clearLayers();
-            updateAreaInfo();
-        }
+        function clearDrawings() { drawnItems.clearLayers(); updateAreaInfo(); }
 
         function toggleAddSensorMode() {
             addSensorMode = !addSensorMode;
-            const btn = document.getElementById('addSensorBtn');
-            const modeDiv = document.getElementById('addSensorMode');
-
-            if (addSensorMode) {
-                btn.textContent = 'Cancel';
-                modeDiv.classList.add('show');
-                map.getContainer().style.cursor = 'crosshair';
-            } else {
-                btn.textContent = '+ Add Sensor';
-                modeDiv.classList.remove('show');
-                map.getContainer().style.cursor = '';
-            }
+            document.getElementById('addSensorBtn').textContent = addSensorMode ? 'Cancel' : '+ Add Sensor';
+            document.getElementById('addSensorMode').classList.toggle('show', addSensorMode);
+            map.getContainer().style.cursor = addSensorMode ? 'crosshair' : '';
         }
 
         function addSensor(latlng, name) {
             const id = Date.now();
-            const sensor = {
-                id: id,
-                name: name || 'Sensor-' + (sensors.length + 1),
-                lat: latlng.lat,
-                lng: latlng.lng
-            };
-
+            const sensor = { id, name: name || 'Sensor-' + (sensors.length + 1), lat: latlng.lat, lng: latlng.lng };
             const marker = L.marker(latlng, { icon: sensorIcon })
-                .bindPopup('<strong>' + sensor.name + '</strong><br>Lat: ' + latlng.lat.toFixed(6) + '<br>Lng: ' + latlng.lng.toFixed(6));
-
+                .bindPopup(`<strong>${sensor.name}</strong><br>Lat: ${latlng.lat.toFixed(6)}<br>Lng: ${latlng.lng.toFixed(6)}`);
             marker.sensorId = id;
             sensorLayer.addLayer(marker);
             sensors.push(sensor);
-
             updateSensorList();
-
-            if (addSensorMode) {
-                toggleAddSensorMode();
-            }
+            if (addSensorMode) toggleAddSensorMode();
             document.getElementById('sensorName').value = '';
         }
 
         function deleteSensor(id) {
             sensors = sensors.filter(s => s.id !== id);
-            sensorLayer.eachLayer(function(layer) {
-                if (layer.sensorId === id) {
-                    sensorLayer.removeLayer(layer);
-                }
-            });
+            sensorLayer.eachLayer(layer => { if (layer.sensorId === id) sensorLayer.removeLayer(layer); });
             updateSensorList();
         }
 
-        function clearSensors() {
-            sensors = [];
-            sensorLayer.clearLayers();
-            updateSensorList();
-        }
+        function clearSensors() { sensors = []; sensorLayer.clearLayers(); updateSensorList(); }
 
         function zoomToSensor(id) {
             const sensor = sensors.find(s => s.id === id);
             if (sensor) {
                 map.setView([sensor.lat, sensor.lng], 14);
-                sensorLayer.eachLayer(function(layer) {
-                    if (layer.sensorId === id) {
-                        layer.openPopup();
-                    }
-                });
+                sensorLayer.eachLayer(layer => { if (layer.sensorId === id) layer.openPopup(); });
             }
         }
 
         function updateSensorList() {
             const list = document.getElementById('sensorList');
-            if (sensors.length === 0) {
-                list.innerHTML = '<p class="hint">No sensors added yet</p>';
-                return;
-            }
-
-            list.innerHTML = sensors.map(s =>
-                '<div class="sensor-item">' +
-                    '<span class="sensor-name" onclick="zoomToSensor(' + s.id + ')">' + s.name + '</span>' +
-                    '<span class="sensor-delete" onclick="deleteSensor(' + s.id + ')">×</span>' +
-                '</div>'
-            ).join('');
+            list.innerHTML = sensors.length === 0 ? '<p class="hint">No sensors added yet</p>' :
+                sensors.map(s => `<div class="sensor-item"><span class="sensor-name" onclick="zoomToSensor(${s.id})">${s.name}</span><span class="sensor-delete" onclick="deleteSensor(${s.id})">×</span></div>`).join('');
         }
 
-        // Fetch depth from NOAA API
+        // ── GeoTIFF pixel query ──────────────────────────────────────────────────
+        const tifCache = new Map(); // url → GeoTIFF object
+
+        async function getTif(url) {
+            if (!tifCache.has(url)) {
+                tifCache.set(url, await GeoTIFF.fromUrl(url));
+            }
+            return tifCache.get(url);
+        }
+
+        function latLonToPixel(lat, lon, image) {
+            const [sx, sy] = image.getResolution(); // [xRes, yRes] — yRes is negative
+            const origin = image.getOrigin();        // [originX, originY]
+            const col = Math.floor((lon - origin[0]) / Math.abs(sx));
+            const row = Math.floor((origin[1] - lat) / Math.abs(sy));
+            const width = image.getWidth();
+            const height = image.getHeight();
+            if (col < 0 || row < 0 || col >= width || row >= height) return null;
+            return { col, row };
+        }
+
+        async function readPixel(image, col, row) {
+            const data = await image.readRasters({
+                window: [col, row, col + 1, row + 1],
+                samples: [0]
+            });
+            return data[0][0];
+        }
+
+        async function queryTifUrl(url, lat, lon) {
+            try {
+                const tif = await getTif(url);
+                const image = await tif.getImage();
+                const px = latLonToPixel(lat, lon, image);
+                if (!px) return null; // out of bounds
+                return await readPixel(image, px.col, px.row);
+            } catch (e) {
+                console.warn('GeoTIFF query error:', url, e);
+                return undefined; // error
+            }
+        }
+
+        // ── Fake kelp data (deterministic noise + coastal proximity) ────────────
+        function fakeKelpQuery(lat, lon, year) {
+            // Restrict to NorCal coastal region
+            if (lat < 36.5 || lat > 42.0 || lon < -125.0 || lon > -119.5) {
+                return { present: false, score: 0.0, outOfBounds: true };
+            }
+            // Deterministic noise: same location always returns the same value
+            const h = Math.sin(lat * 127.1 + lon * 311.7) * 43758.5453;
+            const noise = h - Math.floor(h); // 0..1
+            // Reward proximity to the coast (coast sits roughly at lon -124 ± 0.5)
+            const coastLon = -123.8 - (lat - 38.5) * 0.12;
+            const coastProximity = Math.max(0, 1 - Math.abs(lon - coastLon) / 0.45);
+            // Slight year-over-year variation
+            const yearScale = { '2017': 0.88, '2019': 0.95, '2021': 0.80, '2024': 1.0 }[year] || 1.0;
+            const raw = noise * 0.5 + coastProximity * 0.5;
+            const score = parseFloat(Math.min(5, raw * 5 * yearScale).toFixed(1));
+            return { present: score >= 2.0, score };
+        }
+
+        // ── Fake SST (deterministic noise + lat-based gradient) ─────────────────
+        function fakeSST(lat, lon) {
+            if (lat < 36.5 || lat > 42.0 || lon < -125.0 || lon > -119.5) return null;
+            // Base: cooler north (~11°C at 42°N), warmer south (~16°C at 36.5°N)
+            const baseTemp = 16.5 - (lat - 36.5) * 0.9;
+            // Deterministic noise ±1.5°C
+            const h = Math.sin(lat * 83.7 + lon * 201.3) * 43758.5453;
+            const noise = (h - Math.floor(h) - 0.5) * 3.0;
+            return parseFloat((baseTemp + noise).toFixed(1));
+        }
+
+        // ── Fake coastal structures (deterministic, coast-biased) ────────────────
+        function fakeCoastal(lat, lon) {
+            if (lat < 36.5 || lat > 42.0 || lon < -125.0 || lon > -119.5) return null;
+            const coastLon = -123.8 - (lat - 38.5) * 0.12;
+            if (Math.abs(lon - coastLon) > 0.35) return 0; // too far offshore or inland
+            const h = Math.sin(lat * 211.3 + lon * 97.1) * 43758.5453;
+            return (h - Math.floor(h)) > 0.62 ? 1 : 0; // ~38% chance near coast
+        }
+
+        // ── Depth API ────────────────────────────────────────────────────────────
         function fetchOceanDepth(lat, lng) {
-            const apiUrl = `https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/identify?geometry=${lng},${lat}&geometryType=esriGeometryPoint&returnGeometry=false&returnCatalogItems=false&f=json`;
-
-            return fetch(apiUrl)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.value && data.value !== 'NoData') {
-                        return parseFloat(data.value);
-                    }
-                    return null;
-                })
-                .catch(() => null);
+            return fetch(`https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_all/ImageServer/identify?geometry=${lng},${lat}&geometryType=esriGeometryPoint&returnGeometry=false&f=json`)
+                .then(r => r.json()).then(d => d.value && d.value !== 'NoData' ? parseFloat(d.value) : null).catch(() => null);
         }
 
-        // Map click handler
-        map.on('click', function(e) {
-            if (addSensorMode) {
-                const name = document.getElementById('sensorName').value.trim();
-                addSensor(e.latlng, name);
-            } else {
-                document.getElementById('lat').value = Math.abs(e.latlng.lat).toFixed(6);
-                document.getElementById('lng').value = Math.abs(e.latlng.lng).toFixed(6);
-                document.getElementById('latDir').value = e.latlng.lat >= 0 ? 'N' : 'S';
-                document.getElementById('lngDir').value = e.latlng.lng >= 0 ? 'E' : 'W';
+        // ── Build popup rows ─────────────────────────────────────────────────────
+        function depthRow(elev) {
+            if (elev === null) return '';
+            if (elev >= 0) return `<div class="qp-row"><span class="qp-label">Elevation</span><span class="qp-value qp-present">${elev.toFixed(1)} m</span></div>`;
+            const d = Math.abs(elev), c = getDepthColor(d);
+            return `<div class="qp-row"><span class="qp-label">Ocean Depth</span><span class="qp-value" style="color:rgb(${c[0]},${c[1]},${c[2]});">${d.toFixed(1)} m</span></div>`;
+        }
 
-                // Query depth if depth layer is active
-                if (map.hasLayer(oceanDepthLayer)) {
-                    const popup = L.popup()
-                        .setLatLng(e.latlng)
-                        .setContent('<div class="depth-popup"><span class="depth-label">Querying depth...</span></div>')
-                        .openOn(map);
-
-                    fetchOceanDepth(e.latlng.lat, e.latlng.lng)
-                        .then(elevation => {
-                            let content;
-                            if (elevation === null) {
-                                content = '<div class="depth-popup"><span class="depth-label">No data</span></div>';
-                            } else if (elevation >= 0) {
-                                content = '<div class="depth-popup"><span class="depth-label">Land elevation:</span><br><span class="depth-value" style="color: #228B22;">' + elevation.toFixed(1) + ' m</span></div>';
-                            } else {
-                                const depth = Math.abs(elevation);
-                                const color = getDepthColor(depth);
-                                const colorStr = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-                                content = '<div class="depth-popup">' +
-                                    '<span class="depth-label">Ocean Depth:</span><br>' +
-                                    '<span class="depth-value" style="color: ' + colorStr + ';">' + depth.toFixed(1) + ' m</span>' +
-                                    '<div class="coords">' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4) + '</div>' +
-                                    '</div>';
-                            }
-                            popup.setContent(content);
-                        });
-                }
+        function scoreDotsHtml(score) {
+            const filled = Math.round(score);
+            let dots = '';
+            for (let i = 1; i <= 5; i++) {
+                const color = i <= filled ? (filled >= 4 ? '#228B22' : filled >= 2 ? '#e6a817' : '#cc3333') : '#ddd';
+                dots += `<span style="color:${color};font-size:13px;">●</span>`;
             }
+            return `<span title="${score}/5">${dots} <span style="font-size:10px;color:#888;">${score}/5</span></span>`;
+        }
+
+        function kelpRow(val, year) {
+            if (!val || val.outOfBounds) {
+                return `<div class="qp-row"><span class="qp-label">Kelp ${year}</span><span class="qp-value qp-absent">Out of bounds</span></div>`;
+            }
+            const presence = val.present
+                ? '<span class="qp-value qp-present">Present</span>'
+                : '<span class="qp-value qp-absent">Not detected</span>';
+            return `<div class="qp-row"><span class="qp-label">Kelp ${year}</span>${presence}</div>` +
+                   `<div class="qp-row"><span class="qp-label">Suitability</span>${scoreDotsHtml(val.score)}</div>`;
+        }
+
+        function sstRow(val) {
+            if (val === undefined) return `<div class="qp-row"><span class="qp-label">SST 2023</span><span class="qp-value qp-absent">Error</span></div>`;
+            if (val === null) return `<div class="qp-row"><span class="qp-label">SST 2023</span><span class="qp-value qp-absent">Out of bounds</span></div>`;
+            if (isNaN(val)) return `<div class="qp-row"><span class="qp-label">SST 2023</span><span class="qp-value qp-absent">No data</span></div>`;
+            return `<div class="qp-row"><span class="qp-label">SST 2023</span><span class="qp-value">${val.toFixed(1)}°C</span></div>`;
+        }
+
+        function coastalRow(val) {
+            if (val === undefined) return `<div class="qp-row"><span class="qp-label">Coastal Struct.</span><span class="qp-value qp-absent">Error</span></div>`;
+            if (val === null || val === 255) return `<div class="qp-row"><span class="qp-label">Coastal Struct.</span><span class="qp-value qp-absent">Out of bounds</span></div>`;
+            const label = val === 1 ? '<span class="qp-value qp-present">Present</span>' : '<span class="qp-value qp-absent">Not detected</span>';
+            return `<div class="qp-row"><span class="qp-label">Coastal Struct.</span>${label}</div>`;
+        }
+
+        // ── Map click ────────────────────────────────────────────────────────────
+        map.on('click', function(e) {
+            if (addSensorMode) { addSensor(e.latlng, document.getElementById('sensorName').value.trim()); return; }
+
+            const lat = e.latlng.lat, lon = e.latlng.lng;
+
+            document.getElementById('lat').value = Math.abs(lat).toFixed(6);
+            document.getElementById('lng').value = Math.abs(lon).toFixed(6);
+            document.getElementById('latDir').value = lat >= 0 ? 'N' : 'S';
+            document.getElementById('lngDir').value = lon >= 0 ? 'E' : 'W';
+
+            const doDepth   = map.hasLayer(oceanDepthLayer);
+            const doKelp    = document.getElementById('qKelp').checked;
+            const doSST     = document.getElementById('qSST').checked;
+            const doCoastal = document.getElementById('qCoastal').checked;
+
+            if (!doDepth && !doKelp && !doSST && !doCoastal) return;
+
+            const kelpYear = document.getElementById('kelpYear').value;
+            const coordsHtml = `<div style="font-size:10px;color:#999;margin-top:4px;">${lat.toFixed(4)}, ${lon.toFixed(4)}</div>`;
+
+            const popup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent('<div class="query-popup"><span class="qp-loading">Querying...</span></div>')
+                .openOn(map);
+
+            // Fire all queries in parallel
+            Promise.all([
+                doDepth   ? fetchOceanDepth(lat, lon)              : Promise.resolve('skip'),
+                doKelp    ? Promise.resolve(fakeKelpQuery(lat, lon, kelpYear)) : Promise.resolve('skip'),
+                doSST     ? Promise.resolve(fakeSST(lat, lon))        : Promise.resolve('skip'),
+                doCoastal ? Promise.resolve(fakeCoastal(lat, lon))   : Promise.resolve('skip'),
+            ]).then(([elevResult, kelpResult, sstResult, coastalResult]) => {
+                let rows = '';
+                if (doDepth)   rows += depthRow(elevResult);
+                if (doKelp)    rows += kelpRow(kelpResult, kelpYear);
+                if (doSST)     rows += sstRow(sstResult);
+                if (doCoastal) rows += coastalRow(coastalResult);
+                if (!rows) rows = '<span class="qp-absent">No data</span>';
+                popup.setContent(`<div class="query-popup">${rows}${coordsHtml}</div>`);
+            });
         });
 
         function goToLocation() {
             let lat = parseFloat(document.getElementById('lat').value);
             let lng = parseFloat(document.getElementById('lng').value);
-            const latDir = document.getElementById('latDir').value;
-            const lngDir = document.getElementById('lngDir').value;
-
-            if (isNaN(lat) || isNaN(lng)) {
-                alert('Please enter valid latitude and longitude');
-                return;
-            }
-
-            if (latDir === 'S') lat = -lat;
-            if (lngDir === 'W') lng = -lng;
-
+            if (isNaN(lat) || isNaN(lng)) { alert('Enter valid coordinates'); return; }
+            if (document.getElementById('latDir').value === 'S') lat = -lat;
+            if (document.getElementById('lngDir').value === 'W') lng = -lng;
             map.setView([lat, lng], 12);
         }
 
